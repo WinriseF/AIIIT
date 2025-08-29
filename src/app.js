@@ -21,8 +21,8 @@ app.get('/', (req, res) => {
 });
 
 // 5. 引入并使用业务路由 (我们稍后会逐一创建)
-// const authRoutes = require('./routes/authRoutes');
-// app.use('/v1/auth', authRoutes);
+const authRoutes = require('./routes/authRoutes');
+app.use('/v1/auth', authRoutes);
 
 const PORT = process.env.PORT || 3000;
 
