@@ -1,2 +1,10 @@
 .env
-.idea
+# 忽略 node_modules
+node_modules/
+
+# 其他常见前端忽略
+dist/
+build/
+*.log
+.DS_Store
+.idea/
