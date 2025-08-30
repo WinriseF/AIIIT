@@ -1,0 +1,55 @@
+### auth.http ###
+
+# -- Variables --
+# 定义环境变量，可以在不同的环境中切换 (例如 local, staging, prod)
+@hostname = http://localhost:3000
+@api_v1 = {{hostname}}/v1
+
+# 使用 IDEA HTTP Client 的动态变量生成一个随机的用户名
+@username = testuser{{$randomInt}}@example.com
+@password = strongpassword123
+
+
+### 1. 账户密码注册 (Register)
+# @name registerRequest
+POST {{api_v1}}/auth/register
+Content-Type: application/json
+
+{
+    "username": "{{username}}",
+    "password": "{{password}}"
+}
+
+### 分隔符 ###
+### ---------------------------------------------------- ###
+
+
+### 2. 账户密码登录 (Login)
+# 使用上面注册时用的相同变量进行登录
+POST {{api_v1}}/auth/login
+Content-Type: application/json
+
+{
+    "username": "{{username}}",
+    "password": "{{password}}"
+}
+
+
+### 分隔符 ###
+### ---------------------------------------------------- ###
+
+
+### 3. 微信登录 (wx-login)
+#
+# !!! 重要提示 !!!
+# 下面的 "your_wx_code_here" 必须每次测试时都手动替换。
+# 你需要从你的微信开发者工具的控制台中，通过 uni.login() API 来获取一个临时的 code。
+# 这个 code 是一次性的，且只有5分钟有效期。
+#
+
+POST {{api_v1}}/auth/wx-login
+Content-Type: application/json
+
+{
+  "code": "your_wx_code_here"
+}
