@@ -24,6 +24,21 @@ class ApiKeyService {
     }
 
     /**
+     * 解密文本
+     * @param {{iv: string, encryptedData: string}} hash - 包含iv和加密数据的对象
+     * @returns {string} 解密后的文本
+     */
+    decrypt(hash) {
+        if (!ENCRYPTION_KEY || ENCRYPTION_KEY.length !== 32) {
+            throw new Error("API_KEY_ENCRYPTION_SECRET is not set or not 32 bytes long.");
+        }
+        const decipher = crypto.createDecipheriv(ALGORITHM, Buffer.from(ENCRYPTION_KEY), Buffer.from(hash.iv, 'hex'));
+        let decrypted = decipher.update(Buffer.from(hash.encryptedData, 'hex'));
+        decrypted = Buffer.concat([decrypted, decipher.final()]);
+        return decrypted.toString();
+    }
+
+    /**
      * 为用户保存或更新 API Key
      * @param {number} userId - 用户ID
      * @param {string} provider - API提供商
@@ -63,6 +78,27 @@ class ApiKeyService {
             attributes: ['provider']
         });
         return keys.map(key => key.provider);
+    }
+
+    /**
+     * 获取用户指定提供商的解密后的 API Key
+     * @param {number} userId - 用户ID
+     * @param {string} provider - API提供商
+     * @returns {Promise<string|null>} 解密后的API Key
+     */
+    async getDecryptedApiKey(userId, provider) {
+        const apiKeyRecord = await ApiKey.findOne({
+            where: { user_id: userId, provider: provider }
+        });
+
+        if (!apiKeyRecord) {
+            return null;
+        }
+
+        return this.decrypt({
+            iv: apiKeyRecord.iv,
+            encryptedData: apiKeyRecord.encrypted_api_key
+        });
     }
 }
 

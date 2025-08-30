@@ -24,6 +24,10 @@ app.use('/v1/users', userRoutes);
 const apiKeyRoutes = require('./routes/apiKeyRoutes');
 app.use('/v1/keys', apiKeyRoutes);
 
+const questionRoutes = require('./routes/questionRoutes');
+app.use('/v1/question-sets', questionRoutes);
+
+
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, async () => {
