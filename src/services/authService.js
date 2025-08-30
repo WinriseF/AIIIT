@@ -57,6 +57,10 @@ class AuthService {
             throw new AppError('Invalid username or password.', 401);
         }
 
+        if (!user.isActive) {
+            throw new AppError('Your account is inactive. Please contact support.', 403);
+        }
+
         const isMatch = await bcrypt.compare(password, user.password_hash);
         if (!isMatch) {
             throw new AppError('Invalid username or password.', 401);
@@ -90,6 +94,10 @@ class AuthService {
         let user = await User.findOne({ where: { openid } });
         if (!user) {
             user = await User.create({ openid });
+        } else {
+            if (!user.isActive) {
+                throw new AppError('Your account is inactive. Please contact support.', 403);
+            }
         }
 
         const payload = { id: user.id, openid: user.openid, role: user.role };
