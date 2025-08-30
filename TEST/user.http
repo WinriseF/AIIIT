@@ -8,7 +8,7 @@
 # 使用 IDEA HTTP Client 的动态变量生成一个随机的用户名
 @username = testuser{{$randomInt}}@example.com
 @password = strongpassword123
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwidXNlcm5hbWUiOiJ0ZXN0dXNlcjQyQGV4YW1wbGUuY29tIiwicm9sZSI6InVzZXIiLCJpYXQiOjE3NTY1MjIyMTUsImV4cCI6MTc1Njc4MTQxNX0.evJmG7UwKddbGTBhf3mszXX4_ykirKCsQvp_ZcZI6yU
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwidXNlcm5hbWUiOiJ0ZXN0dXNlcjQyQGV4YW1wbGUuY29tIiwicm9sZSI6InVzZXIiLCJpYXQiOjE3NTY1MjMxNDAsImV4cCI6MTc1Njc4MjM0MH0.-tQKFcAfJdamZYDnJu-BF_hmIWsrFy2aLUWcVfX9ssA
 
 ### 1. 账户密码注册 (Register)
 # @name registerRequest
@@ -65,4 +65,29 @@ Content-Type: application/json
 # @name getCurrentUser
 # @token_variable access_token
 GET {{api_v1}}/users/me
+Authorization: Bearer {{token}}
+
+### 分隔符 ###
+### ---------------------------------------------------- ###
+
+
+### 5. 保存/更新用户的 API Key (需要认证)
+# 使用登录后获取的 token
+PUT {{api_v1}}/keys
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "provider": "siliconcloud",
+  "apiKey": "sk-XXXXXXXXXXXXXXXXXXXXXXXX"
+}
+
+
+### 分隔符 ###
+### ---------------------------------------------------- ###
+
+
+### 6. 获取用户已配置的 API Key 提供商列表 (需要认证)
+# 使用登录后获取的 token
+GET {{api_v1}}/keys
 Authorization: Bearer {{token}}

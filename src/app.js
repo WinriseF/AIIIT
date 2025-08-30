@@ -21,6 +21,9 @@ app.use('/v1/auth', authRoutes);
 const userRoutes = require('./routes/userRoutes');
 app.use('/v1/users', userRoutes);
 
+const apiKeyRoutes = require('./routes/apiKeyRoutes');
+app.use('/v1/keys', apiKeyRoutes);
+
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, async () => {
