@@ -1,0 +1,476 @@
+请你帮我分析架构，功能包括：
+1.使用AI出题（调用AI的API进行出题，题目包括选择、判断、填空、也可以包括主观题但是主观题需要再次调用AI判断得分），注意需要用户在我的页面自己配置自己的APIkey，调用自己的API，然后选择模型，选择题目的大方向（例如互联网）、小方向（例如后端）、详细（例如MySQL数据库）方面的题目，题目数量（例如30道），题目难度（例如困难），题目类别（例如选择题）等
+2.出题完成后要保存题目数据到数据库，用户可以看到自己的出过的题目，可以选择公开（公开后每个人都可以看到，可以点进去做题），同时具有更正功能，用户可以反馈题目出错了然后提交错误经过审核后就对相关错误题目进行更正
+3.具有基本的登录注册功能等
+4.提供基本的AI聊天功能
+
+
+
+
+
+一、 API 设计约定
+Base URL: 所有接口都基于一个基础路径，例如 https://api.yourdomain.com/v1
+认证 (Authentication):
+除登录、注册等少数公开接口外，所有需授权的接口都必须在 HTTP 请求头 (Header) 中携带 Authorization 字段。
+格式为：Authorization: Bearer <YOUR_JWT_TOKEN>
+请求/响应格式:
+所有请求体 (Request Body) 和响应体 (Response Body) 均使用 JSON 格式。
+响应体将遵循统一的结构：
+JSON
+{
+  "code": 0,          // 状态码, 0 表示成功, 其他非 0 数字表示错误
+  "message": "Success", // 描述信息
+  "data": { ... }       // 成功时返回的数据, 可能为 null, object 或 array
+}
+
+HTTP 状态码:
+200 OK: 请求成功（GET, PUT）。
+201 Created: 资源创建成功 (POST)。
+204 No Content: 请求成功，但无返回内容 (DELETE)。
+400 Bad Request: 请求参数错误或无效。
+401 Unauthorized: 未认证或 Token 失效。
+403 Forbidden: 已认证，但无权限访问。
+404 Not Found: 请求的资源不存在。
+500 Internal Server Error: 服务器内部错误。
+
+二、 API 接口详解
+模块 1: 用户认证与管理 (Auth & Users) - 已更新
+1.1 微信登录 (小程序首选)
+
+Endpoint: POST /auth/wx-login
+
+描述: 通过小程序提供的临时code进行登录。如果是新用户，系统将为其自动创建一个没有账户名和密码的账户。
+
+认证: 无需
+
+请求体:
+
+JSON
+
+{
+  "code": "JSCODE_FROM_UNI.LOGIN"
+}
+成功响应 (200 OK):
+
+JSON
+
+{
+  "code": 0,
+  "message": "微信登录成功",
+  "data": {
+    "token": "ey...", // 用于后续请求的JWT Token
+    "isAccountSet": false // 关键标识：false表示用户需要被引导去设置账户和密码
+  }
+}
+1.2 设置账户凭证 (微信首次登录后调用)
+
+Endpoint: POST /users/me/set-credentials
+
+描述: 已登录用户（通过微信）首次设置自己的账户名和密码。
+
+
+认证: 需要  (必须携带微信登录后获取的JWT Token)
+
+请求体:
+
+JSON
+
+{
+  "username": "new_unique_user",
+  "password": "a_strong_password_123"
+}
+成功响应 (200 OK):
+
+JSON
+
+{
+  "code": 0,
+  "message": "账户凭证设置成功",
+  "data": null
+}
+错误响应 (409 Conflict): 该 username 已被占用。
+
+1.3 账户密码登录 (为未来APP/网页端准备)
+
+Endpoint: POST /auth/login
+
+描述: 用户使用已设置的账户名和密码登录，并获取 JWT Token。
+
+认证: 无需
+
+请求体:
+
+JSON
+
+{
+  "username": "new_unique_user",
+  "password": "a_strong_password_123"
+}
+成功响应 (200 OK):
+
+JSON
+
+{
+  "code": 0,
+  "message": "登录成功",
+  "data": {
+    "token": "ey...", // JWT Token
+    "expiresIn": 7200
+  }
+}
+错误响应 (401 Unauthorized): 账户名或密码错误。
+
+1.4 账户密码注册 (为未来APP/网页端准备)
+
+
+Endpoint: POST /auth/register 
+
+
+描述: 创建一个新用户（不通过微信）。
+
+认证: 无需
+
+请求体:
+
+JSON
+
+{
+  "username": "another_new_user",
+  "password": "password123"
+}
+成功响应 (201 Created):
+
+JSON
+
+{
+  "code": 0,
+  "message": "用户注册成功",
+  "data": {
+    "userId": 124,
+    "username": "another_new_user"
+  }
+}
+错误响应 (409 Conflict): 用户名已存在。
+
+1.5 获取当前用户信息
+
+Endpoint: GET /users/me
+
+
+描述: 获取当前登录用户的详细信息。
+
+认证: 需要
+
+请求体: 无
+
+成功响应 (200 OK):
+
+JSON
+
+{
+  "code": 0,
+  "message": "Success",
+  "data": {
+    "userId": 123,
+    "username": "new_unique_user", // 如果还未设置，此字段可能为 null
+    "createdAt": "2025-08-29T12:00:00.000Z"
+  }
+}
+
+1.6 更新用户信息
+接口: PUT /users/me
+理由: 当前只有获取用户信息的接口 (GET /users/me) ，但用户可能需要修改他们的账户名（
+username）。提供一个更新接口是很有必要的。
+描述: 允许当前登录的用户更新自己的个人信息，例如账户名。
+
+模块 2: API Key 管理
+2.1 保存/更新用户的 API Key
+Endpoint: PUT /keys
+描述: 为当前用户添加或更新一个 AI 提供商的 API Key。
+认证: 需要
+请求体:
+JSON
+{
+  "provider": "openai", // 'openai', 'google', 'anthropic' 等
+  "apiKey": "sk-..."
+}
+成功响应 (200 OK):
+JSON
+{
+  "code": 0,
+  "message": "API Key 保存成功",
+  "data": null
+}
+
+2.2 获取用户已配置的 API Key 提供商列表
+Endpoint: GET /keys
+描述: 获取用户已经配置了哪些提供商的 API Key，绝不返回 Key 本身。
+认证: 需要
+请求体: 无
+成功响应 (200 OK):
+JSON
+{
+  "code": 0,
+  "message": "Success",
+  "data": {
+    "providers": ["openai", "google"]
+  }
+}
+
+模块 3: AI 出题与题库管理
+3.1 AI 生成一套题目
+Endpoint: POST /question-sets/generate
+描述: 调用 AI 生成一套全新的题目。这是一个耗时操作，建议采用异步方案。
+认证: 需要
+请求体:
+JSON
+{
+  "title": "MySQL 数据库高级知识测评",
+  "model": "gpt-4-turbo", // 用户选择的模型
+  "provider": "openai",   // 用户选择的 API Key 提供商
+  "domain_major": "互联网",
+  "domain_minor": "后端",
+  "domain_detail": "MySQL 数据库索引优化",
+  "difficulty": "困难",
+  "questionType": "multiple_choice", // 'multiple_choice', 'true_false', 'subjective'
+  "quantity": 10
+}
+成功响应 (202 Accepted): （推荐异步）
+JSON
+{
+  "code": 0,
+  "message": "题目生成任务已创建，请稍后查询结果",
+  "data": {
+    "setId": "set_abc123",
+    "status": "processing" // 状态：processing, completed, failed
+  }
+}
+后续处理: 前端需要轮询 GET /question-sets/{setId} 接口检查状态。
+
+3.2 获取指定题库详情 (用于开始答题)
+Endpoint: GET /question-sets/{setId}
+描述: 获取一套题目的详细信息。为方便前端批改，此接口现在会返回客观题的答案。
+认证: 需要
+请求体: 无
+成功响应 (200 OK) - 已更新:
+JSON
+{
+  "code": 0,
+  "message": "Success",
+  "data": {
+    "id": "set_abc123",
+    "title": "MySQL 数据库高级知识测评",
+    // ... 其他元信息
+    "questions": [
+      {
+        "id": "q_xyz789",
+        "type": "multiple_choice", // 客观题
+        "content": {
+          "question": "关于 InnoDB 的聚集索引，以下说法错误的是？",
+          "options": ["A. ...", "B. ...", "C. ...", "D. ..."]
+        },
+        "answer": { // 关键：客观题的答案直接返回给前端
+          "correctOption": "C",
+          "explanation": "因为..."
+        }
+      },
+      {
+        "id": "q_pqr456",
+        "type": "subjective", // 主观题
+        "content": {
+          "question": "请解释一下什么是 MVCC？"
+        },
+        "answer": null // 关键：主观题的参考答案不返回
+      }
+    ]
+  }
+}
+
+3.3 获取我的题库列表
+Endpoint: GET /question-sets/my?page=1&limit=10
+描述: 分页获取当前用户创建的所有题库。
+认证: 需要
+请求体: 无
+成功响应 (200 OK):
+JSON
+{
+  "code": 0,
+  "message": "Success",
+  "data": {
+    "sets": [ { "id": "set_abc123", "title": "...", "createdAt": "..." } ],
+    "pagination": { "page": 1, "limit": 10, "total": 50 }
+  }
+}
+3.4 获取公开题库列表
+Endpoint: GET /question-sets/public?page=1&limit=10
+描述: 分页获取所有公开的题库。
+认证: 无需
+成功响应 (200 OK): 结构同 3.3。
+
+3.5 更新题库信息 (如公开/私有)
+Endpoint: PUT /question-sets/{setId}
+描述: 更新题库的元信息，如标题、是否公开等。
+认证: 需要 (且必须是题库创建者)
+请求体:
+JSON
+{
+  "title": "新的标题",
+  "isPublic": true
+}
+成功响应 (200 OK): 返回更新后的题库信息。
+
+3.6 删除指定题库
+接口: DELETE /question-sets/{setId}
+理由: 用户可能会创建一些测试性的或不满意的题库，需要有删除自己创建内容的功能。这对于应用的数据整洁性很重要。
+描述: 删除当前用户创建的指定题库。后端需要校验操作者是否为题库的创建者 。
+
+3.7 为现有接口增加查询参数
+GET /question-sets/public?search=MySQL
+GET /question-sets/my?search=MySQL
+描述: 为获取公开题库和我的题库的接口增加一个 search 查询参数，用于根据关键词搜索题集标题或描述。后端需要实现相应的模糊查询逻辑。
+
+模块 4: 答题与错题本 (核心模块)
+4.1 提交答卷 (无变化)
+这个接口保持不变，它依然是后端记录用户作答、进行 AI 批改、并返回完整结果快照的核心。每次提交，它都会成为更新错题本的数据源。
+
+Endpoint: POST /quizzes/submit
+
+状态: 维持原设计。
+
+4.2 获取我的错题本 (全新核心接口)
+这是取代了所有历史记录接口的全新 API。它将一次性、分页地返回用户当前需要重做的所有错题。
+
+Endpoint: GET /notebook/wrong-questions
+
+描述: 分页获取当前用户的错题本。列表中的题目是根据用户所有历史记录动态计算的——只展示用户最近一次回答中没有得到满分的题目。
+
+认证: 需要
+
+请求查询参数 (Query Params):
+
+page (可选, 数字, 默认 1)
+
+limit (可选, 数字, 默认 20)
+
+domain_major (可选, 字符串, 如 "互联网", 用于按大类筛选错题)
+
+成功响应 (200 OK):
+
+JSON
+
+{
+  "code": 0,
+  "message": "Success",
+  "data": {
+    "wrongQuestions": [
+      {
+        "questionId": "q_xyz789",
+        "type": "multiple_choice",
+        "domain_detail": "MySQL 数据库",
+        "content": {
+          "question": "关于 InnoDB 的聚集索引，以下说法错误的是？",
+          "options": ["A. ...", "B. ...", "C. ...", "D. ..."]
+        },
+        "correctAnswer": { // 错题本必须提供答案和解析，用于学习
+          "correctOption": "C",
+          "explanation": "因为..."
+        },
+        "lastAttempt": { // 附带上一次错误作答的信息，帮助用户回忆
+           "userAnswer": "B", // 用户当时选择的错误答案
+           "attemptedAt": "2025-08-28T10:00:00.000Z"
+        }
+      },
+      {
+        "questionId": "q_pqr456",
+        "type": "subjective",
+        "domain_detail": "MVCC",
+        "content": {
+          "question": "请解释一下什么是 MVCC？"
+        },
+        // 主观题没有标准答案，不返回 correctAnswer 字段
+        "lastAttempt": {
+           "userAnswer": "MVCC 就是...",
+           "aiScore": 7, // 上次得分
+           "aiFeedback": "回答基本正确，但缺少对...的阐述。",
+           "attemptedAt": "2025-08-29T11:30:00.000Z"
+        }
+      }
+    ],
+    "pagination": {
+      "page": 1,
+      "limit": 20,
+      "total": 85 // 用户总共有 85 道错题
+    }
+  }
+}
+4.3 从错题本中移除题目
+
+接口: DELETE /notebook/wrong-questions/{questionId}
+
+理由: 用户在错题本中学习后，可能希望手动将已掌握的题目移除，而不是必须通过再次答对来移除。这提供了一种更灵活的管理方式。
+
+描述: 手动将某个问题从当前用户的错题本中移除。
+模块 5: 题目纠错
+5.1 提交题目纠错建议
+Endpoint: POST /corrections
+描述: 用户针对某个具体问题提交错误反馈。
+认证: 需要
+请求体:
+JSON
+{
+  "questionId": "q_xyz789",
+  "suggestion": "这道题的正确答案应该是 D，因为..."
+}
+成功响应 (201 Created):
+JSON
+{
+  "code": 0,
+  "message": "感谢您的反馈，我们将尽快审核！",
+  "data": null
+}
+
+5.2 获取待审核的纠错列表 (后台)
+
+接口: GET /admin/corrections?status=pending
+
+
+理由: 您的初始需求提到纠错需要“经过审核后就对相关错误题目进行更正” 。目前只有用户提交的接口，还需要后台管理员能看到并处理这些提交。
+
+描述: (管理员权限) 获取所有等待审核的题目纠错建议列表。
+
+5.3 处理纠错建议 (后台)
+
+接口: POST /admin/corrections/{correctionId}/approve 或 POST /admin/corrections/{correctionId}/reject
+
+理由: 与上一条对应，这是审核流程的具体执行接口。
+
+描述: (管理员权限) 批准或拒绝某条纠错建议。批准后，后端可以触发逻辑去更新原始题目的内容。
+
+模块 6: AI 聊天
+6.1 发送聊天消息
+Endpoint: POST /chat/completions
+描述: 与 AI 进行对话。
+认证: 需要
+请求体:
+JSON
+{
+  "provider": "openai", // 指定使用哪个 key
+  "model": "gpt-4",
+  "messages": [
+    { "role": "system", "content": "You are a helpful assistant." },
+    { "role": "user", "content": "你好，请解释一下什么是 Node.js 的事件循环。" }
+  ]
+}
+成功响应 (200 OK):
+JSON
+{
+  "code": 0,
+  "message": "Success",
+  "data": {
+    "reply": {
+      "role": "assistant",
+      "content": "好的，Node.js 的事件循环是其非阻塞 I/O 模型的核心..."
+    }
+  }
+}
+进阶: 为实现打字机效果，该接口可改为使用 WebSocket 或 Server-Sent Events (SSE) 进行流式传输。
