@@ -53,12 +53,8 @@ class AuthService {
      */
     async login(username, password) {
         const user = await User.findOne({ where: { username } });
-        if (!user) {
-            throw new AppError('Invalid username or password.', 401);
-        }
-
-        if (!user.isActive) {
-            throw new AppError('Your account is inactive. Please contact support.', 403);
+        if (!user || !user.isActive) {
+            throw new AppError('Invalid username or password, or account is inactive', 401);
         }
 
         const isMatch = await bcrypt.compare(password, user.password_hash);
@@ -67,11 +63,11 @@ class AuthService {
         }
 
         const payload = { id: user.id, username: user.username, role: user.role };
-        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '2h' });
+        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
 
         return {
             token: token,
-            expiresIn: 7200
+            expiresIn: parseInt(process.env.JWT_EXPIRES_IN_SECONDS, 10)
         };
     }
 
@@ -101,7 +97,7 @@ class AuthService {
         }
 
         const payload = { id: user.id, openid: user.openid, role: user.role };
-        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '2h' });
+        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: process.env.JWT_EXPIRES_IN });
 
         return {
             token: token,

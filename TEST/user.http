@@ -8,7 +8,7 @@
 # 使用 IDEA HTTP Client 的动态变量生成一个随机的用户名
 @username = testuser{{$randomInt}}@example.com
 @password = strongpassword123
-
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwidXNlcm5hbWUiOiJ0ZXN0dXNlcjQyQGV4YW1wbGUuY29tIiwicm9sZSI6InVzZXIiLCJpYXQiOjE3NTY1MjIyMTUsImV4cCI6MTc1Njc4MTQxNX0.evJmG7UwKddbGTBhf3mszXX4_ykirKCsQvp_ZcZI6yU
 
 ### 1. 账户密码注册 (Register)
 # @name registerRequest
@@ -65,4 +65,4 @@ Content-Type: application/json
 # @name getCurrentUser
 # @token_variable access_token
 GET {{api_v1}}/users/me
-Authorization: Bearer {{login.response.body.data.token}}
+Authorization: Bearer {{token}}
