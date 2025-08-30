@@ -131,3 +131,15 @@ Content-Type: application/json
 # @name getQuestionSet
 GET {{api_v1}}/question-sets/6
 Authorization: Bearer {{token}}
+
+### 分隔符 ###
+### ---------------------------------------------------- ###
+
+
+### 9. 获取我的题库列表 (需要认证)
+#
+# 这个接口支持分页，你可以修改 URL 中的 page 和 limit 参数来测试
+# 例如: /my?page=2&limit=5
+#
+GET {{api_v1}}/question-sets/my?page=1&limit=10
+Authorization: Bearer {{token}}

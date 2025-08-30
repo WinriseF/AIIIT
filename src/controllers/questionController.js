@@ -25,7 +25,7 @@ exports.generateQuestionSet = async (req, res) => {
     }
 };
 
-// 3.2 获取指定题库详情 (新增)
+// 3.2 获取指定题库详情
 exports.getQuestionSet = async (req, res) => {
     const { setId } = req.params;
     const userId = req.user.id;
@@ -43,5 +43,28 @@ exports.getQuestionSet = async (req, res) => {
     } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({ code: statusCode, message: error.message });
+    }
+};
+
+/**
+ *  3.3 获取我的题库列表
+ */
+exports.getMyQuestionSets = async (req, res) => {
+    const userId = req.user.id;
+
+    // 从查询参数中获取分页信息，并提供默认值
+    const page = parseInt(req.query.page, 10) || 1;
+    const limit = parseInt(req.query.limit, 10) || 10;
+
+    try {
+        const result = await questionService.getQuestionSetsByCreator(userId, page, limit);
+        res.status(200).json({
+            code: 0,
+            message: 'Success',
+            data: result
+        });
+    } catch (error) {
+        console.error('getMyQuestionSets Controller Error:', error);
+        res.status(500).json({ code: 500, message: 'Internal Server Error' });
     }
 };

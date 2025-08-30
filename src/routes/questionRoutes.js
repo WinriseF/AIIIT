@@ -6,6 +6,9 @@ const authMiddleware = require('../middleware/authMiddleware');
 
 router.use(authMiddleware);
 
+// GET /v1/question-sets/my
+router.get('/my', questionController.getMyQuestionSets);
+
 // POST /v1/question-sets/generate
 router.post('/generate', questionController.generateQuestionSet);
 

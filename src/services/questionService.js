@@ -206,6 +206,38 @@ class QuestionService {
         }
         return questionSet;
     }
+
+    /**
+     * 获取指定创建者的题库列表
+     * @param {number} userId - 创建者用户ID
+     * @param {number} page - 页码
+     * @param {number} limit - 每页数量
+     * @returns {Promise<object>}
+     */
+    async getQuestionSetsByCreator(userId, page = 1, limit = 10) {
+        const offset = (page - 1) * limit;
+
+        // findAndCountAll 是 Sequelize 提供的一个便捷方法，它同时返回查询结果和总数
+        const { count, rows } = await QuestionSet.findAndCountAll({
+            where: {
+                creator_id: userId
+            },
+            // 为了列表性能，我们通常不在此处包含完整的题目详情
+            attributes: ['id', 'title', 'isPublic', 'status', 'createdAt', 'quantity'],
+            limit: limit,
+            offset: offset,
+            order: [['createdAt', 'DESC']] // 按创建时间降序排列
+        });
+
+        return {
+            sets: rows,
+            pagination: {
+                page: page,
+                limit: limit,
+                total: count
+            }
+        };
+    }
 }
 
 module.exports = new QuestionService();
