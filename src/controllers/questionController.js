@@ -4,7 +4,7 @@ const questionService = require('../services/questionService');
 // 3.1 AI 生成一套题目 (异步版)
 exports.generateQuestionSet = async (req, res) => {
     const userId = req.user.id;
-    const generationParams = req.body; // 参数校验部分省略，可按需添加
+    const generationParams = req.body; // 参数校验部分省略
 
     try {
         // 调用Service启动任务

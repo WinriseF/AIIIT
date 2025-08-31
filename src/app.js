@@ -1,13 +1,44 @@
 // src/app.js
-require('dotenv').config(); // 确保在所有代码之前加载环境变量
+require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const rateLimit = require('express-rate-limit');
 const sequelize = require('./config/database');
 
 const app = express();
 
-app.use(cors()); // 允许所有来源的跨域请求
-app.use(express.json()); // 解析请求体中的 JSON 数据
+app.use(cors());
+app.use(express.json());
+
+// 1. 通用速率限制器: 应用于所有 /v1/ 下的API请求
+const apiLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 分钟的窗口期
+    max: 200, // 在窗口期内，每个IP最多允许200次请求
+    message: {
+        code: 429,
+        message: '请求过于频繁，请稍后再试。'
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+// 2. 更严格的速率限制器: 应用于认证相关的敏感路由
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 分钟
+    max: 10, // 每个IP在15分钟内最多尝试10次
+    message: {
+        code: 429,
+        message: '登录或注册尝试过于频繁，请15分钟后再试。'
+    },
+    standardHeaders: true,
+    legacyHeaders: false,
+});
+
+// 应用限制器到对应的路由上
+app.use('/v1/', apiLimiter); // 将通用限制器应用于所有 /v1/ 路由
+app.use('/v1/auth/login', authLimiter); // 将严格限制器应用于登录路由
+app.use('/v1/auth/wxLogin', authLimiter); // 微信登录也应用严格限制
+
 
 app.get('/', (req, res) => {
     res.status(200).json({
