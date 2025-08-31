@@ -279,3 +279,40 @@ Authorization: Bearer {{token}}
 #
 DELETE {{api_v1}}/notebook/wrong-questions/1
 Authorization: Bearer {{token}}
+
+### 分隔符 ###
+### ---------------------------------------------------- ###
+
+### 21. 提交题目纠错建议 (需要认证)
+#
+# "questionId" 必须是 `questions` 表中真实存在的题目ID。
+#
+POST {{api_v1}}/corrections
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "questionId": 1,
+  "suggestion": "我认为这道题的正确答案应该是 D，因为根据官方文档的描述..."
+}
+
+### 分隔符 ###
+### ---------------------------------------------------- ###
+
+### 22. AI 聊天 (需要认证)
+#
+# 1. "provider" 和 "model" 需要与你保存的 API Key 相匹配。
+# 2. "messages" 数组模拟了前端维护的对话历史。
+#
+POST {{api_v1}}/chat/completions
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "provider": "siliconflow",
+  "model": "THUDM/GLM-4.1V-9B-Thinking",
+  "messages": [
+    { "role": "system", "content": "你是一个充满活力和激情的编程导师。" },
+    { "role": "user", "content": "你好！请解释什么是 Node.js？" }
+  ]
+}

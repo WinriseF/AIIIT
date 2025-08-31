@@ -36,6 +36,12 @@ app.use('/v1/quizzes', quizRoutes);
 const notebookRoutes = require('./routes/notebookRoutes');
 app.use('/v1/notebook', notebookRoutes);
 
+const correctionRoutes = require('./routes/correctionRoutes');
+app.use('/v1/corrections', correctionRoutes);
+
+const chatRoutes = require('./routes/chatRoutes');
+app.use('/v1/chat', chatRoutes);
+
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, async () => {
