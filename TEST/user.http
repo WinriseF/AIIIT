@@ -109,15 +109,15 @@ Authorization: Bearer {{token}}
 Content-Type: application/json
 
 {
-  "title": "MySQL 数据库高级知识测评",
+  "title": "Nodejs知识",
   "provider": "siliconflow",
   "model": "THUDM/GLM-4.1V-9B-Thinking",
   "domain_major": "互联网",
   "domain_minor": "后端",
-  "domain_detail": "MySQL 数据库索引优化",
+  "domain_detail": "Nodejs知识",
   "difficulty": "困难",
   "questionType": "true_false",
-  "quantity": 5
+  "quantity": 20
 }
 
 ### 分隔符 ###
@@ -129,7 +129,7 @@ Content-Type: application/json
 # 使用上一步 (AI 生成题目) 请求返回的 setId
 # 你可能需要手动复制 setId 过来，或者如果你的客户端支持，可以使用变量
 # @name getQuestionSet
-GET {{api_v1}}/question-sets/6
+GET {{api_v1}}/question-sets/7
 Authorization: Bearer {{token}}
 
 ### 分隔符 ###
