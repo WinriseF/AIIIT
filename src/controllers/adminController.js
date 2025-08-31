@@ -1,5 +1,6 @@
 // src/controllers/adminController.js
 const correctionService = require('../services/correctionService');
+const MAX_PAGE_LIMIT = 50;
 
 exports.getCorrections = async (req, res) => {
     // 从查询参数中获取 status，默认为 'pending'
@@ -9,7 +10,7 @@ exports.getCorrections = async (req, res) => {
     try {
         const options = {
             page: parseInt(page, 10) || 1,
-            limit: parseInt(limit, 10) || 10
+            limit: Math.min(parseInt(limit, 10) || 10, MAX_PAGE_LIMIT)
         };
         const result = await correctionService.getCorrectionsByStatus(status, options);
         res.status(200).json({

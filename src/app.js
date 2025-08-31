@@ -8,7 +8,7 @@ const sequelize = require('./config/database');
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '10kb' }));
 
 // 1. 通用速率限制器: 应用于所有 /v1/ 下的API请求
 const apiLimiter = rateLimit({

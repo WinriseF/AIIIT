@@ -1,5 +1,6 @@
 // src/controllers/favoriteController.js
 const favoriteService = require('../services/favoriteService');
+const MAX_PAGE_LIMIT = 50;
 
 exports.addFavorite = async (req, res) => {
     const userId = req.user.id;
@@ -38,7 +39,7 @@ exports.getFavoriteQuestionSets = async (req, res) => {
     try {
         const options = {
             page: parseInt(page, 10) || 1,
-            limit: parseInt(limit, 10) || 10
+            limit: Math.min(parseInt(limit, 10) || 10, MAX_PAGE_LIMIT)
         };
         const result = await favoriteService.getFavoritesByUser(userId, options);
         res.status(200).json({

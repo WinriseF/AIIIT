@@ -1,5 +1,6 @@
 // src/controllers/questionController.js
 const questionService = require('../services/questionService');
+const MAX_PAGE_LIMIT = 50;
 
 // 3.1 AI 生成一套题目 (异步版)
 exports.generateQuestionSet = async (req, res) => {
@@ -56,7 +57,7 @@ exports.getMyQuestionSets = async (req, res) => {
     try {
         const options = {
             page: parseInt(page, 10) || 1,
-            limit: parseInt(limit, 10) || 10,
+            limit: Math.min(parseInt(limit, 10) || 10, MAX_PAGE_LIMIT),
             domainMajor: domain_major,
             search: search
         };
@@ -78,7 +79,7 @@ exports.getPublicQuestionSets = async (req, res) => {
     try {
         const options = {
             page: parseInt(page, 10) || 1,
-            limit: parseInt(limit, 10) || 10,
+            limit: Math.min(parseInt(limit, 10) || 10, MAX_PAGE_LIMIT),
             domainMajor: domain_major,
             search: search
         };

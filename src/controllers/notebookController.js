@@ -1,5 +1,6 @@
 // src/controllers/notebookController.js
 const notebookService = require('../services/notebookService');
+const MAX_PAGE_LIMIT = 50;
 
 exports.submitQuiz = async (req, res) => {
     const userId = req.user.id;
@@ -30,7 +31,7 @@ exports.getWrongAnswers = async (req, res) => {
     try {
         const options = {
             page: parseInt(page, 10) || 1,
-            limit: parseInt(limit, 10) || 10
+            limit: Math.min(parseInt(limit, 10) || 10, MAX_PAGE_LIMIT)
         };
         const result = await notebookService.getWrongAnswersByUser(userId, options);
         res.status(200).json({
