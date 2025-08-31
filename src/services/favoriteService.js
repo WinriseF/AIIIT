@@ -1,7 +1,8 @@
 // src/services/favoriteService.js
 const Favorite = require('../models/Favorite');
 const QuestionSet = require('../models/QuestionSet');
-const AppError = require('../services/questionService');
+const AppError = require('../utils/AppError');
+const User = require('../models/User');
 
 class FavoriteService {
 
@@ -49,6 +50,46 @@ class FavoriteService {
         if (result === 0) {
             throw new AppError('您没有收藏过这个题库，无法取消收藏。', 404);
         }
+    }
+
+    /**
+     * 获取用户的收藏题库列表 (分页)
+     * @param {number} userId - 当前用户ID
+     * @param {object} options - 分页选项 { page, limit }
+     */
+    async getFavoritesByUser(userId, options = {}) {
+        const { page = 1, limit = 10 } = options;
+        const offset = (page - 1) * limit;
+
+        const user = await User.findByPk(userId);
+
+        const { count, rows } = await user.getFavoriteQuestionSets({
+            joinTableAttributes: ['createdAt'],
+            attributes: ['id', 'title', 'isPublic', 'status', 'createdAt', 'quantity', 'domain_major'],
+            limit: limit,
+            offset: offset,
+            order: [
+                // 按收藏时间倒序排列
+                [Favorite, 'createdAt', 'DESC']
+            ]
+        });
+
+        // 格式化返回结果，将收藏时间(favoritedAt)附加到每个题库对象上
+        const formattedSets = rows.map(set => {
+            return {
+                ...set.toJSON(),
+                favoritedAt: set.Favorite.createdAt
+            };
+        });
+
+        return {
+            sets: formattedSets,
+            pagination: {
+                page: page,
+                limit: limit,
+                total: count
+            }
+        };
     }
 }
 

@@ -3,16 +3,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const axios = require('axios');
 const User = require('../models/User');
-
-/**
- * 自定义错误类，用于在Service层和Controller层之间传递业务错误
- */
-class AppError extends Error {
-    constructor(message, statusCode) {
-        super(message);
-        this.statusCode = statusCode;
-    }
-}
+const AppError = require('../utils/AppError');
 
 class AuthService {
     /**

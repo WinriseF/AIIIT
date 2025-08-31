@@ -9,6 +9,8 @@ router.get('/public', questionController.getPublicQuestionSets);
 
 router.use(authMiddleware);
 
+router.get('/favorites', favoriteController.getFavoriteQuestionSets);
+
 // GET /v1/question-sets/my
 router.get('/my', questionController.getMyQuestionSets);
 

@@ -225,5 +225,15 @@ Authorization: Bearer {{token}}
 #
 # 将下面 URL 中的 "public_set_id" 替换为上一步你收藏的那个 id。
 #
-DELETE {{api_v1}}/question-sets/public_set_id/favorite
+DELETE {{api_v1}}/question-sets/6/favorite
+Authorization: Bearer {{token}}
+
+### 分隔符 ###
+### ---------------------------------------------------- ###
+
+### 17. 获取我的收藏题库列表 (需要认证)
+#
+# 这个接口支持分页
+#
+GET {{api_v1}}/question-sets/favorites?page=1&limit=10
 Authorization: Bearer {{token}}

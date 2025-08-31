@@ -5,13 +5,7 @@ const apiKeyService = require('./apiKeyService');
 const QuestionSet = require('../models/QuestionSet');
 const Question = require('../models/Question');
 const { User } = require('../models/User');
-
-class AppError extends Error {
-    constructor(message, statusCode) {
-        super(message);
-        this.statusCode = statusCode;
-    }
-}
+const AppError = require('../utils/AppError');
 
 class QuestionService {
     /**
