@@ -1,8 +1,8 @@
 // src/services/favoriteService.js
 const Favorite = require('../models/Favorite');
 const QuestionSet = require('../models/QuestionSet');
-const AppError = require('../utils/AppError');
 const User = require('../models/User');
+const AppError = require('../utils/AppError');
 
 class FavoriteService {
 
@@ -12,24 +12,18 @@ class FavoriteService {
      * @param {number} questionSetId - 要收藏的题库ID
      */
     async addFavorite(userId, questionSetId) {
-        // 检查题库是否存在且是公开的
         const questionSet = await QuestionSet.findOne({
             where: { id: questionSetId, isPublic: true, status: 'completed' }
         });
-
         if (!questionSet) {
             throw new AppError('无法收藏，该题库不存在、是私有的或尚未生成成功。', 404);
         }
-
-        // 尝试创建收藏记录
         const [favorite, created] = await Favorite.findOrCreate({
             where: { user_id: userId, question_set_id: questionSetId }
         });
-
         if (!created) {
-            throw new AppError('您已经收藏过这个题库了。', 409); // 409 Conflict
+            throw new AppError('您已经收藏过这个题库了。', 409);
         }
-
         return favorite;
     }
 
@@ -39,14 +33,9 @@ class FavoriteService {
      * @param {number} questionSetId - 要取消收藏的题库ID
      */
     async removeFavorite(userId, questionSetId) {
-        // 尝试删除指定的收藏记录
         const result = await Favorite.destroy({
-            where: {
-                user_id: userId,
-                question_set_id: questionSetId
-            }
+            where: { user_id: userId, question_set_id: questionSetId }
         });
-        // destroy 方法返回被删除的行数。如果为0，说明该收藏记录原本就不存在。
         if (result === 0) {
             throw new AppError('您没有收藏过这个题库，无法取消收藏。', 404);
         }
@@ -61,25 +50,29 @@ class FavoriteService {
         const { page = 1, limit = 10 } = options;
         const offset = (page - 1) * limit;
 
-        const user = await User.findByPk(userId);
-
-        const { count, rows } = await user.getFavoriteQuestionSets({
-            joinTableAttributes: ['createdAt'],
-            attributes: ['id', 'title', 'isPublic', 'status', 'createdAt', 'quantity', 'domain_major'],
+        // 直接从 Favorite (收藏记录) 表开始查询
+        const { count, rows } = await Favorite.findAndCountAll({
+            where: { user_id: userId },
+            // 关联出每个收藏记录对应的题库信息
+            include: [{
+                model: QuestionSet,
+                required: true, // 确保只返回那些题库依然存在的收藏
+                attributes: ['id', 'title', 'isPublic', 'status', 'createdAt', 'quantity', 'domain_major']
+            }],
             limit: limit,
             offset: offset,
             order: [
-                // 按收藏时间倒序排列
-                [Favorite, 'createdAt', 'DESC']
+                // 直接按收藏记录的创建时间(也就是收藏时间)倒序排列
+                ['createdAt', 'DESC']
             ]
         });
 
-        // 格式化返回结果，将收藏时间(favoritedAt)附加到每个题库对象上
-        const formattedSets = rows.map(set => {
-            return {
-                ...set.toJSON(),
-                favoritedAt: set.Favorite.createdAt
-            };
+        // 重组数据，使其符合前端期望的格式
+        const formattedSets = rows.map(favoriteInstance => {
+            const questionSetData = favoriteInstance.QuestionSet.toJSON();
+            // 将收藏时间附加到题库对象上
+            questionSetData.favoritedAt = favoriteInstance.createdAt;
+            return questionSetData;
         });
 
         return {

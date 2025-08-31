@@ -47,7 +47,14 @@ exports.getFavoriteQuestionSets = async (req, res) => {
             data: result
         });
     } catch (error) {
-        console.error('getFavoriteQuestionSets Controller Error:', error);
+        // --- 这是核心修改：增加超详细的诊断日志 ---
+        console.error('--- GET FAVORITES FAILED ---');
+        console.error("Timestamp:", new Date().toISOString());
+        // 打印完整的错误对象，这将告诉我们问题的根源
+        console.error("Full Error Object:", error);
+        console.error('--- END OF ERROR REPORT ---');
+        // --- 修改结束 ---
+
         res.status(500).json({ code: 500, message: 'Internal Server Error' });
     }
 };

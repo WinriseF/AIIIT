@@ -7,29 +7,37 @@ const QuestionSet = require('./QuestionSet');
 const Favorite = sequelize.define('Favorite', {
     user_id: {
         type: DataTypes.INTEGER,
-        primaryKey: true, // 联合主键的一部分
+        primaryKey: true,
         references: {
             model: User,
             key: 'id'
         },
-        onDelete: 'CASCADE', // 如果用户被删除，其收藏记录也被删除
+        onDelete: 'CASCADE',
         onUpdate: 'CASCADE'
     },
     question_set_id: {
         type: DataTypes.INTEGER,
-        primaryKey: true, // 联合主键的一部分
+        primaryKey: true,
         references: {
             model: QuestionSet,
             key: 'id'
         },
-        onDelete: 'CASCADE', // 如果题库被删除，其收藏记录也应被删除
+        onDelete: 'CASCADE',
         onUpdate: 'CASCADE'
     }
 }, {
     tableName: 'user_favorites',
-    timestamps: true, // Sequelize会自动添加 createdAt 和 updatedAt
-    updatedAt: false // 收藏关系通常只需要创建时间
+    timestamps: true,
+    updatedAt: false
 });
+
+// 一个 Favorite 记录属于一个 User
+Favorite.belongsTo(User, { foreignKey: 'user_id' });
+User.hasMany(Favorite, { foreignKey: 'user_id' });
+
+// 一个 Favorite 记录属于一个 QuestionSet
+Favorite.belongsTo(QuestionSet, { foreignKey: 'question_set_id' });
+QuestionSet.hasMany(Favorite, { foreignKey: 'question_set_id' });
 
 // 建立多对多关系
 User.belongsToMany(QuestionSet, {
