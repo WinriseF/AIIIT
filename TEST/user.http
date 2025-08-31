@@ -382,3 +382,24 @@ Content-Type: application/json
 {
   "status": "rejected"
 }
+
+
+### 分隔符 ###
+### ---------------------------------------------------- ###
+
+### 27. 搜索“我的”题库列表 (需要认证)
+#
+# 在 URL 中用 search 参数指定搜索关键词，例如 "MySQL"
+#
+GET {{api_v1}}/question-sets/my?search=MySQL
+Authorization: Bearer {{token}}
+
+
+### 分隔符 ###
+### ---------------------------------------------------- ###
+
+### 28. 搜索“公开”题库列表 (无需认证)
+#
+# 在 URL 中用 search 参数指定搜索关键词
+#
+GET {{api_v1}}/question-sets/public?search=高级

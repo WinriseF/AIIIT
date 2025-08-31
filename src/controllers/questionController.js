@@ -51,22 +51,17 @@ exports.getQuestionSet = async (req, res) => {
  */
 exports.getMyQuestionSets = async (req, res) => {
     const userId = req.user.id;
-
-    // 从查询参数中获取分页和筛选信息
-    const { page, limit, domain_major } = req.query;
+    const { page, limit, domain_major, search } = req.query;
 
     try {
         const options = {
             page: parseInt(page, 10) || 1,
             limit: parseInt(limit, 10) || 10,
-            domainMajor: domain_major // 将查询参数传递给Service
+            domainMajor: domain_major,
+            search: search
         };
         const result = await questionService.getQuestionSetsByCreator(userId, options);
-        res.status(200).json({
-            code: 0,
-            message: 'Success',
-            data: result
-        });
+        res.status(200).json({ code: 0, message: 'Success', data: result });
     } catch (error) {
         console.error('getMyQuestionSets Controller Error:', error);
         res.status(500).json({ code: 500, message: 'Internal Server Error' });
@@ -78,20 +73,17 @@ exports.getMyQuestionSets = async (req, res) => {
  * 3.4 获取公开题库列表
  */
 exports.getPublicQuestionSets = async (req, res) => {
-    const { page, limit, domain_major } = req.query;
+    const { page, limit, domain_major, search } = req.query;
 
     try {
         const options = {
             page: parseInt(page, 10) || 1,
             limit: parseInt(limit, 10) || 10,
-            domainMajor: domain_major
+            domainMajor: domain_major,
+            search: search
         };
         const result = await questionService.getPublicQuestionSets(options);
-        res.status(200).json({
-            code: 0,
-            message: 'Success',
-            data: result
-        });
+        res.status(200).json({ code: 0, message: 'Success', data: result });
     } catch (error) {
         console.error('getPublicQuestionSets Controller Error:', error);
         res.status(500).json({ code: 500, message: 'Internal Server Error' });

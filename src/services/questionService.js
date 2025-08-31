@@ -1,5 +1,6 @@
 // src/services/questionService.js
 const OpenAI = require('openai');
+const { Op } = require('sequelize');
 const sequelize = require('../config/database');
 const apiKeyService = require('./apiKeyService');
 const QuestionSet = require('../models/QuestionSet');
@@ -200,21 +201,21 @@ class QuestionService {
     }
 
     /**
-     * 获取指定创建者的题库列表 (分页 + 筛选)
+     * 获取指定创建者的题库列表 (分页 + 筛选 + 搜索)
      * @param {number} userId - 创建者用户ID
-     * @param {object} options - 包含分页和筛选条件的对象 { page, limit, domainMajor }
+     * @param {object} options - 包含分页和筛选条件的对象 { page, limit, domainMajor, search }
      * @returns {Promise<object>}
      */
     async getQuestionSetsByCreator(userId, options = {}) {
-        const { page = 1, limit = 10, domainMajor } = options;
+        const { page = 1, limit = 10, domainMajor, search } = options;
         const offset = (page - 1) * limit;
 
-        // 动态构建查询条件
-        const whereClause = {
-            creator_id: userId
-        };
+        const whereClause = { creator_id: userId };
         if (domainMajor) {
             whereClause.domain_major = domainMajor;
+        }
+        if (search) {
+            whereClause.title = { [Op.like]: `%${search}%` };
         }
 
         const { count, rows } = await QuestionSet.findAndCountAll({
@@ -227,30 +228,25 @@ class QuestionService {
 
         return {
             sets: rows,
-            pagination: {
-                page: page,
-                limit: limit,
-                total: count
-            }
+            pagination: { page, limit, total: count }
         };
     }
 
     /**
-     * 获取所有公开的题库列表 (分页 + 筛选)
-     * @param {object} options - 包含分页和筛选条件的对象 { page, limit, domainMajor }
+     * 获取所有公开的题库列表 (分页 + 筛选 + 搜索)
+     * @param {object} options - 包含分页和筛选条件的对象 { page, limit, domainMajor, search }
      * @returns {Promise<object>}
      */
     async getPublicQuestionSets(options = {}) {
-        const { page = 1, limit = 10, domainMajor } = options;
+        const { page = 1, limit = 10, domainMajor, search } = options;
         const offset = (page - 1) * limit;
 
-        // 动态构建查询条件
-        const whereClause = {
-            isPublic: true,
-            status: 'completed'
-        };
+        const whereClause = { isPublic: true, status: 'completed' };
         if (domainMajor) {
             whereClause.domain_major = domainMajor;
+        }
+        if (search) {
+            whereClause.title = { [Op.like]: `%${search}%` };
         }
 
         const { count, rows } = await QuestionSet.findAndCountAll({
@@ -263,11 +259,7 @@ class QuestionService {
 
         return {
             sets: rows,
-            pagination: {
-                page: page,
-                limit: limit,
-                total: count
-            }
+            pagination: { page, limit, total: count }
         };
     }
 
