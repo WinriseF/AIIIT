@@ -31,3 +31,27 @@ exports.getCurrentUser = async (req, res) => {
         res.status(500).json({ code: 500, message: 'Internal Server Error' });
     }
 };
+
+/**
+ * 1.2 设置账户凭证
+ */
+exports.setCredentials = async (req, res) => {
+    const userId = req.user.id;
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+        return res.status(400).json({ code: 400, message: '必须提供用户名和密码。' });
+    }
+
+    try {
+        await userService.setCredentials(userId, username, password);
+        res.status(200).json({
+            code: 0,
+            message: '账户凭证设置成功',
+            data: null
+        });
+    } catch (error) {
+        const statusCode = error.statusCode || 500;
+        res.status(statusCode).json({ code: statusCode, message: error.message || 'Internal Server Error' });
+    }
+};

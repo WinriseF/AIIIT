@@ -6,35 +6,6 @@ const User = require('../models/User');
 const AppError = require('../utils/AppError');
 
 class AuthService {
-    /**
-     * 处理账户密码注册的业务逻辑
-     * @param {string} username - 用户名
-     * @param {string} password - 密码
-     * @returns {Promise<object>} 创建的新用户信息
-     */
-    async register(username, password) {
-        // 检查用户名是否已存在
-        const existingUser = await User.findOne({ where: { username } });
-        if (existingUser) {
-            // 抛出业务错误，由Controller层捕获并转换为HTTP响应
-            throw new AppError('Username already exists.', 409);
-        }
-
-        // 密码哈希加密
-        const password_hash = await bcrypt.hash(password, 10);
-
-        // 创建新用户
-        const newUser = await User.create({
-            username,
-            password_hash
-        });
-
-        // 只返回安全的数据
-        return {
-            userId: newUser.id,
-            username: newUser.username
-        };
-    }
 
     /**
      * 处理账户密码登录的业务逻辑

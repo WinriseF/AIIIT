@@ -16,23 +16,6 @@ const handleError = (res, error) => {
     });
 };
 
-exports.register = async (req, res) => {
-    const { username, password } = req.body;
-    if (!username || !password) {
-        return res.status(400).json({ code: 400, message: 'Username and password are required.' });
-    }
-    try {
-        const newUser = await authService.register(username, password);
-        res.status(201).json({
-            code: 0,
-            message: '用户注册成功',
-            data: newUser
-        });
-    } catch (error) {
-        handleError(res, error);
-    }
-};
-
 exports.login = async (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) {

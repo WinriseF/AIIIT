@@ -4,8 +4,12 @@ const router = express.Router();
 const userController = require('../controllers/userController');
 const authMiddleware = require('../middleware/authMiddleware');
 
-// 定义 GET /me 路由
-// 在 userController.getCurrentUser 执行之前，会先执行 authMiddleware 进行身份验证
-router.get('/me', authMiddleware, userController.getCurrentUser);
+router.use(authMiddleware);
+
+// GET /me 获取当前用户信息
+router.get('/me', userController.getCurrentUser);
+
+// POST /me/set-credentials 设置账户凭证
+router.post('/me/set-credentials', userController.setCredentials);
 
 module.exports = router;
