@@ -30,6 +30,11 @@ app.use('/v1/question-sets', questionRoutes);
 const domainRoutes = require('./routes/domainRoutes');
 app.use('/v1/domains', domainRoutes);
 
+const quizRoutes = require('./routes/quizRoutes');
+app.use('/v1/quizzes', quizRoutes);
+
+const notebookRoutes = require('./routes/notebookRoutes');
+app.use('/v1/notebook', notebookRoutes);
 
 const PORT = process.env.PORT || 3000;
 

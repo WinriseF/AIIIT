@@ -237,3 +237,34 @@ Authorization: Bearer {{token}}
 #
 GET {{api_v1}}/question-sets/favorites?page=1&limit=10
 Authorization: Bearer {{token}}
+
+### 分隔符 ###
+### ---------------------------------------------------- ###
+
+### 18. 记录答题信息（更新错题本） (需要认证)
+#
+# !! 重要 !!
+# 1. "questionId" 必须是 `questions` 表中真实存在的题目ID。
+# 2. "userAnswer" 是用户提交的错误答案。
+#
+POST {{api_v1}}/quizzes/submit
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "wrongAnswers": [
+    { "questionId": 1, "userAnswer": {"answer": "A"} },
+    { "questionId": 3, "userAnswer": {"answer": "D"} }
+  ]
+}
+
+
+### 分隔符 ###
+### ---------------------------------------------------- ###
+
+### 19. 获取我的错题本列表 (需要认证)
+#
+# 这个接口支持分页
+#
+GET {{api_v1}}/notebook/wrong-questions?page=1&limit=10
+Authorization: Bearer {{token}}
