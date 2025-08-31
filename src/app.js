@@ -42,6 +42,9 @@ app.use('/v1/corrections', correctionRoutes);
 const chatRoutes = require('./routes/chatRoutes');
 app.use('/v1/chat', chatRoutes);
 
+const adminRoutes = require('./routes/adminRoutes');
+app.use('/v1/admin', adminRoutes);
+
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, async () => {

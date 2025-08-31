@@ -313,6 +313,72 @@ Content-Type: application/json
   "model": "THUDM/GLM-4.1V-9B-Thinking",
   "messages": [
     { "role": "system", "content": "你是一个充满活力和激情的编程导师。" },
-    { "role": "user", "content": "你好！请解释什么是 Node.js？" }
+    { "role": "user", "content": "你好！请解释什么是数据库？" }
   ]
+}
+
+### 分隔符 ###
+### ---------------------------------------------------- ###
+
+### 23. 测试管理员后台访问 (需要管理员权限)
+#
+# 1. 执行此请求前，必须先手动将你的用户在数据库中的 role 修改为 'admin'。
+# 2. 如果你是普通用户，应该会收到 403 Forbidden 错误。
+# 3. 如果你是管理员，应该会收到欢迎信息。
+#
+GET {{api_v1}}/admin/dashboard
+Authorization: Bearer {{token}}
+
+### 分隔符 ###
+### ---------------------------------------------------- ###
+
+### 24. (管理员) 获取待审核的纠错列表
+#
+# 1. 确保你的用户角色是 'admin'。
+# 2. 确保数据库中至少有一条用户提交的纠错建议。
+# 3. 你可以修改 status 参数来查看不同状态的列表, e.g., ?status=approved
+#
+GET {{api_v1}}/admin/corrections?status=pending
+Authorization: Bearer {{token}}
+
+### 分隔符 ###
+### ---------------------------------------------------- ###
+
+### 25. (管理员) 批准并修正题目
+#
+# 1. 确保你的用户角色是 'admin'。
+# 2. 先调用“获取待审核列表”接口，找到一个你想处理的 correction 的 id。
+# 3. 将下面 URL 中的 "your_correction_id" 替换为那个 id。
+#
+PUT {{api_v1}}/admin/corrections/your_correction_id
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "status": "approved",
+  "updatedQuestion": {
+    "content": {
+      "question": "【管理员已修正】这道题的题干现在更清晰了",
+      "options": ["修正后的选项A", "修正后的选项B", "修正后的选项C", "修正后的选项D"]
+    },
+    "answer": {
+      "correctOption": "D",
+      "explanation": "【管理员已修正】这是一个更准确、更详细的解析。"
+    }
+  }
+}
+
+### 分隔符 ###
+### ---------------------------------------------------- ###
+
+### 26. (管理员) 拒绝一个纠错建议
+#
+# 将下面 URL 中的 "another_correction_id" 替换为另一个建议的 id。
+#
+PUT {{api_v1}}/admin/corrections/another_correction_id
+Authorization: Bearer {{login.response.body.data.token}}
+Content-Type: application/json
+
+{
+  "status": "rejected"
 }
