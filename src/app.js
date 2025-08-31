@@ -27,6 +27,9 @@ app.use('/v1/keys', apiKeyRoutes);
 const questionRoutes = require('./routes/questionRoutes');
 app.use('/v1/question-sets', questionRoutes);
 
+const domainRoutes = require('./routes/domainRoutes');
+app.use('/v1/domains', domainRoutes);
+
 
 const PORT = process.env.PORT || 3000;
 

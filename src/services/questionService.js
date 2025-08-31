@@ -142,7 +142,6 @@ class QuestionService {
                 throw new Error("AI返回的JSON中缺少 'questions' 数组。");
             }
 
-            // --- 这是核心修改：健壮的数据重组逻辑 ---
             const questionsToCreate = aiResponseJson.questions.map(q => {
                 // 检查 answer 是否在顶层，或者被错误地嵌套在 content 中
                 const answer = q.answer || (q.content && q.content.answer);
@@ -165,7 +164,6 @@ class QuestionService {
                     question_set_id: setId
                 };
             });
-            // --- 修改结束 ---
 
             await Question.bulkCreate(questionsToCreate, { transaction: t });
 
@@ -208,25 +206,29 @@ class QuestionService {
     }
 
     /**
-     * 获取指定创建者的题库列表
+     * 获取指定创建者的题库列表 (分页 + 筛选)
      * @param {number} userId - 创建者用户ID
-     * @param {number} page - 页码
-     * @param {number} limit - 每页数量
+     * @param {object} options - 包含分页和筛选条件的对象 { page, limit, domainMajor }
      * @returns {Promise<object>}
      */
-    async getQuestionSetsByCreator(userId, page = 1, limit = 10) {
+    async getQuestionSetsByCreator(userId, options = {}) {
+        const { page = 1, limit = 10, domainMajor } = options;
         const offset = (page - 1) * limit;
 
-        // findAndCountAll 是 Sequelize 提供的一个便捷方法，它同时返回查询结果和总数
+        // 动态构建查询条件
+        const whereClause = {
+            creator_id: userId
+        };
+        if (domainMajor) {
+            whereClause.domain_major = domainMajor;
+        }
+
         const { count, rows } = await QuestionSet.findAndCountAll({
-            where: {
-                creator_id: userId
-            },
-            // 为了列表性能，我们通常不在此处包含完整的题目详情
-            attributes: ['id', 'title', 'isPublic', 'status', 'createdAt', 'quantity'],
+            where: whereClause,
+            attributes: ['id', 'title', 'isPublic', 'status', 'createdAt', 'quantity', 'domain_major'],
             limit: limit,
             offset: offset,
-            order: [['createdAt', 'DESC']] // 按创建时间降序排列
+            order: [['createdAt', 'DESC']]
         });
 
         return {
@@ -237,6 +239,80 @@ class QuestionService {
                 total: count
             }
         };
+    }
+
+    /**
+     * 获取所有公开的题库列表 (分页 + 筛选)
+     * @param {object} options - 包含分页和筛选条件的对象 { page, limit, domainMajor }
+     * @returns {Promise<object>}
+     */
+    async getPublicQuestionSets(options = {}) {
+        const { page = 1, limit = 10, domainMajor } = options;
+        const offset = (page - 1) * limit;
+
+        // 动态构建查询条件
+        const whereClause = {
+            isPublic: true,
+            status: 'completed'
+        };
+        if (domainMajor) {
+            whereClause.domain_major = domainMajor;
+        }
+
+        const { count, rows } = await QuestionSet.findAndCountAll({
+            where: whereClause,
+            attributes: ['id', 'title', 'isPublic', 'status', 'createdAt', 'quantity', 'domain_major'],
+            limit: limit,
+            offset: offset,
+            order: [['createdAt', 'DESC']]
+        });
+
+        return {
+            sets: rows,
+            pagination: {
+                page: page,
+                limit: limit,
+                total: count
+            }
+        };
+    }
+
+    /**
+     * 更新指定ID的题库信息
+     * @param {number} setId - 题库ID
+     * @param {number} userId - 当前操作的用户ID
+     * @param {object} updateData - 需要更新的数据, e.g., { title, isPublic }
+     * @returns {Promise<object|null>} 更新后的题库对象
+     */
+    async updateQuestionSet(setId, userId, updateData) {
+        const questionSet = await QuestionSet.findByPk(setId);
+
+        if (!questionSet) {
+            // 使用我们自定义的AppError来传递特定的HTTP状态码
+            throw new AppError('题库不存在', 404);
+        }
+
+        if (questionSet.creator_id !== userId) {
+            throw new AppError('无权修改该题库', 403); // 403 Forbidden
+        }
+
+        // 只允许更新指定的字段
+        const allowedUpdates = {};
+        if (updateData.title !== undefined) {
+            allowedUpdates.title = updateData.title;
+        }
+        if (updateData.isPublic !== undefined) {
+            allowedUpdates.isPublic = updateData.isPublic;
+        }
+
+        if (Object.keys(allowedUpdates).length === 0) {
+            // 如果没有提供任何可更新的字段，则无需操作
+            return questionSet;
+        }
+
+        await questionSet.update(allowedUpdates);
+
+        return questionSet;
     }
 }
 

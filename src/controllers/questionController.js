@@ -47,17 +47,21 @@ exports.getQuestionSet = async (req, res) => {
 };
 
 /**
- *  3.3 获取我的题库列表
+ * 3.3 获取我的题库列表
  */
 exports.getMyQuestionSets = async (req, res) => {
     const userId = req.user.id;
 
-    // 从查询参数中获取分页信息，并提供默认值
-    const page = parseInt(req.query.page, 10) || 1;
-    const limit = parseInt(req.query.limit, 10) || 10;
+    // 从查询参数中获取分页和筛选信息
+    const { page, limit, domain_major } = req.query;
 
     try {
-        const result = await questionService.getQuestionSetsByCreator(userId, page, limit);
+        const options = {
+            page: parseInt(page, 10) || 1,
+            limit: parseInt(limit, 10) || 10,
+            domainMajor: domain_major // 将查询参数传递给Service
+        };
+        const result = await questionService.getQuestionSetsByCreator(userId, options);
         res.status(200).json({
             code: 0,
             message: 'Success',
@@ -66,5 +70,56 @@ exports.getMyQuestionSets = async (req, res) => {
     } catch (error) {
         console.error('getMyQuestionSets Controller Error:', error);
         res.status(500).json({ code: 500, message: 'Internal Server Error' });
+    }
+};
+
+
+/**
+ * 3.4 获取公开题库列表
+ */
+exports.getPublicQuestionSets = async (req, res) => {
+    const { page, limit, domain_major } = req.query;
+
+    try {
+        const options = {
+            page: parseInt(page, 10) || 1,
+            limit: parseInt(limit, 10) || 10,
+            domainMajor: domain_major
+        };
+        const result = await questionService.getPublicQuestionSets(options);
+        res.status(200).json({
+            code: 0,
+            message: 'Success',
+            data: result
+        });
+    } catch (error) {
+        console.error('getPublicQuestionSets Controller Error:', error);
+        res.status(500).json({ code: 500, message: 'Internal Server Error' });
+    }
+};
+
+/**
+ * 3.5 更新题库信息
+ */
+exports.updateQuestionSet = async (req, res) => {
+    const { setId } = req.params;
+    const userId = req.user.id;
+    const { title, isPublic } = req.body;
+
+    // 基本校验：确保至少提供了一个要更新的字段
+    if (title === undefined && isPublic === undefined) {
+        return res.status(400).json({ code: 400, message: '至少需要提供 title 或 isPublic 字段进行更新。' });
+    }
+
+    try {
+        const updatedQuestionSet = await questionService.updateQuestionSet(setId, userId, { title, isPublic });
+        res.status(200).json({
+            code: 0,
+            message: '题库信息更新成功',
+            data: updatedQuestionSet
+        });
+    } catch (error) {
+        const statusCode = error.statusCode || 500;
+        res.status(statusCode).json({ code: statusCode, message: error.message || 'Internal Server Error' });
     }
 };
