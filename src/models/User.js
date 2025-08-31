@@ -11,7 +11,10 @@ const User = sequelize.define('User', {
     username: {
         type: DataTypes.STRING,
         allowNull: true,
-        unique: true
+        unique: {
+            name: 'unique_username', // 给这个唯一索引起一个固定的名字
+            msg: 'Username already exists.'
+        }
     },
     password_hash: {
         type: DataTypes.STRING,
@@ -20,7 +23,10 @@ const User = sequelize.define('User', {
     openid: {
         type: DataTypes.STRING,
         allowNull: true,
-        unique: true
+        unique: {
+            name: 'unique_openid', // 给这个唯一索引起一个固定的名字
+            msg: 'OpenID already exists.'
+        }
     },
     isActive: {
         type: DataTypes.BOOLEAN,
@@ -31,7 +37,6 @@ const User = sequelize.define('User', {
         defaultValue: 'user'
     }
 }, {
-    // Sequelize 会自动添加 createdAt 和 updatedAt 字段
     timestamps: true,
     tableName: 'users'
 });

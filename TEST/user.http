@@ -202,4 +202,28 @@ Authorization: Bearer {{token}}
 
 
 ### 14. 按分类筛选“公开”题库列表
-GET {{api_v1}}/question-sets/public?domain_major=互联网
+GET {{api_v1}}/question-sets/public?domain_major=
+
+
+### 分隔符 ###
+### ---------------------------------------------------- ###
+
+### 15. 收藏一个公开题库 (需要认证)
+#
+# 1. 先执行“获取公开题库列表”请求，从返回结果中找到一个你想收藏的题库的 id。
+# 2. 将下面 URL 中的 "public_set_id" 替换为那个 id。
+#
+POST {{api_v1}}/question-sets/6/favorite
+Authorization: Bearer {{token}}
+
+
+### 分隔符 ###
+### ---------------------------------------------------- ###
+
+
+### 16. 取消收藏一个题库 (需要认证)
+#
+# 将下面 URL 中的 "public_set_id" 替换为上一步你收藏的那个 id。
+#
+DELETE {{api_v1}}/question-sets/public_set_id/favorite
+Authorization: Bearer {{token}}
