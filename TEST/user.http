@@ -268,3 +268,14 @@ Content-Type: application/json
 #
 GET {{api_v1}}/notebook/wrong-questions?page=1&limit=10
 Authorization: Bearer {{token}}
+
+### 分隔符 ###
+### ---------------------------------------------------- ###
+
+### 20. 从错题本中移除一道题 (需要认证)
+#
+# 1. 先执行“获取我的错题本列表”请求，从返回结果中找到一个你想删除的错题的 questionId。
+# 2. 将下面 URL 中的 "your_question_id" 替换为那个 id。
+#
+DELETE {{api_v1}}/notebook/wrong-questions/1
+Authorization: Bearer {{token}}

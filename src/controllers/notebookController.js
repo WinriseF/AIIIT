@@ -43,3 +43,17 @@ exports.getWrongAnswers = async (req, res) => {
         res.status(500).json({ code: 500, message: 'Internal Server Error' });
     }
 };
+
+exports.removeWrongAnswer = async (req, res) => {
+    const userId = req.user.id;
+    const { questionId } = req.params;
+
+    try {
+        await notebookService.removeWrongAnswer(userId, parseInt(questionId, 10));
+        // 成功删除后，返回 204 No Content
+        res.status(204).send();
+    } catch (error) {
+        const statusCode = error.statusCode || 500;
+        res.status(statusCode).json({ code: statusCode, message: error.message || 'Internal Server Error' });
+    }
+};

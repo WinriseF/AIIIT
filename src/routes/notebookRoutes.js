@@ -9,4 +9,7 @@ router.use(authMiddleware);
 // GET /v1/notebook/wrong-questions
 router.get('/wrong-questions', notebookController.getWrongAnswers);
 
+// DELETE /v1/notebook/wrong-questions/:questionId
+router.delete('/wrong-questions/:questionId', notebookController.removeWrongAnswer);
+
 module.exports = router;

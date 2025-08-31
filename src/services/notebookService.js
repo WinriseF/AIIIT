@@ -97,6 +97,24 @@ class NotebookService {
             }
         };
     }
+
+    /**
+     * 从用户的错题本中移除一道题
+     * @param {number} userId - 当前用户ID
+     * @param {number} questionId - 要移除的题目ID
+     */
+    async removeWrongAnswer(userId, questionId) {
+        const result = await WrongAnswer.destroy({
+            where: {
+                user_id: userId,
+                question_id: questionId
+            }
+        });
+
+        if (result === 0) {
+            throw new AppError('该题目不在您的错题本中。', 404);
+        }
+    }
 }
 
 module.exports = new NotebookService();
