@@ -86,8 +86,8 @@ app.listen(PORT, async () => {
         await sequelize.authenticate();
         console.log('Database connection has been established successfully.');
 
-        await sequelize.sync();
-        //await sequelize.sync({ alter: true });
+        //await sequelize.sync();
+        await sequelize.sync({ alter: true });
         console.log("All models were synchronized successfully.");
 
     } catch (error) {

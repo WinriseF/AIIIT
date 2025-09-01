@@ -159,3 +159,29 @@ exports.updateQuestionSet = async (req, res) => {
         res.status(statusCode).json({ code: statusCode, message: error.message || 'Internal Server Error' });
     }
 };
+
+/**
+ * 提交题库评分
+ */
+exports.submitRating = async (req, res) => {
+    const userId = req.user.id;
+    const { setId } = req.params;
+    const { rating } = req.body;
+
+    // 严格校验评分值
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
+        return res.status(400).json({ code: 400, message: '评分必须是1到5之间的整数。' });
+    }
+
+    try {
+        await questionService.rateQuestionSet(userId, parseInt(setId, 10), rating);
+        res.status(200).json({
+            code: 0,
+            message: '评分成功！',
+            data: null
+        });
+    } catch (error) {
+        const statusCode = error.statusCode || 500;
+        res.status(statusCode).json({ code: statusCode, message: error.message || 'Internal Server Error' });
+    }
+};

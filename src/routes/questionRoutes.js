@@ -19,6 +19,8 @@ router.post('/generate', questionController.generateQuestionSet);
 
 router.post('/import', questionController.importQuestionSet);
 
+router.post('/:setId/rate', questionController.submitRating);
+
 // PUT /v1/question-sets/:setId
 router.put('/:setId', questionController.updateQuestionSet);
 

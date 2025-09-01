@@ -39,6 +39,18 @@ const QuestionSet = sequelize.define('QuestionSet', {
         defaultValue: 'processing',
         comment: '生成状态'
     },
+    total_rating_score: {
+        type: DataTypes.INTEGER,
+        defaultValue: 5,
+        allowNull: false,
+        comment: '总评分'
+    },
+    rating_count: {
+        type: DataTypes.INTEGER,
+        defaultValue: 0,
+        allowNull: false,
+        comment: '评分总次数'
+    },
     // ---- 关联 ----
     creator_id: {
         type: DataTypes.INTEGER,

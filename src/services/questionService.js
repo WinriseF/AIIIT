@@ -398,6 +398,34 @@ class QuestionService {
         return newSet;
     }
 
+    /**
+     * 为指定题库提交一个评分
+     * @param {number} userId - 评分用户ID
+     * @param {number} setId - 题库ID
+     * @param {number} ratingValue - 评分值 (1-5)
+     * @returns {Promise<QuestionSet>}
+     */
+    async rateQuestionSet(userId, setId, ratingValue) {
+        const questionSet = await QuestionSet.findByPk(setId);
+
+        if (!questionSet) {
+            throw new AppError('您要评分的题库不存在。', 404);
+        }
+
+        // 规则：用户不能给自己创建的题库评分
+        if (questionSet.creator_id === userId) {
+            throw new AppError('不能给自己创建的题库评分。', 403);
+        }
+
+        // 核心更新逻辑：分数和次数累加
+        questionSet.total_rating_score += ratingValue;
+        questionSet.rating_count += 1;
+
+        await questionSet.save();
+
+        return questionSet;
+    }
+
     async getQuestionSetById(setId, userId) {
         const questionSet = await QuestionSet.findByPk(setId, {
             include: [{

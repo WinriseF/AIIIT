@@ -51,7 +51,7 @@ exports.processCorrection = async (req, res) => {
 };
 
 /**
- * (新增) 更新用户发布权限
+ * 更新用户发布权限
  */
 exports.updateUserPublicationStatus = async (req, res) => {
     const { userId } = req.params;
@@ -66,6 +66,55 @@ exports.updateUserPublicationStatus = async (req, res) => {
         res.status(200).json({
             code: 0,
             message: `用户(ID: ${userId})的发布权限已成功更新为: ${canPublish}`,
+            data: null
+        });
+    } catch (error) {
+        const statusCode = error.statusCode || 500;
+        res.status(statusCode).json({ code: statusCode, message: error.message || 'Internal Server Error' });
+    }
+};
+
+/**
+ * (管理员) 获取所有题库列表
+ */
+exports.getAllQuestionSets = async (req, res) => {
+    const { page, limit, isPublic, search } = req.query;
+
+    try {
+        const options = {
+            page: parseInt(page, 10) || 1,
+            limit: Math.min(parseInt(limit, 10) || 10, MAX_PAGE_LIMIT),
+            search: search
+        };
+        // 只有当 isPublic 参数明确提供时才加入筛选条件
+        if (isPublic === 'true' || isPublic === 'false') {
+            options.isPublic = (isPublic === 'true');
+        }
+
+        const result = await adminService.getAllQuestionSets(options);
+        res.status(200).json({ code: 0, message: 'Success', data: result });
+    } catch (error) {
+        const statusCode = error.statusCode || 500;
+        res.status(statusCode).json({ code: statusCode, message: error.message || 'Internal Server Error' });
+    }
+};
+
+/**
+ * (管理员) 更新题库的公开状态
+ */
+exports.updateQuestionSetPublicStatus = async (req, res) => {
+    const { setId } = req.params;
+    const { isPublic } = req.body;
+
+    if (typeof isPublic !== 'boolean') {
+        return res.status(400).json({ code: 400, message: '请求体中必须包含 "isPublic" 字段，且其值必须是布尔类型。' });
+    }
+
+    try {
+        await adminService.updateQuestionSetPublicStatus(parseInt(setId, 10), isPublic);
+        res.status(200).json({
+            code: 0,
+            message: `题库(ID: ${setId})的公开状态已成功更新为: ${isPublic}`,
             data: null
         });
     } catch (error) {

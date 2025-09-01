@@ -25,4 +25,10 @@ router.put('/corrections/:correctionId', adminController.processCorrection);
 
 router.put('/users/:userId/publication-status', adminController.updateUserPublicationStatus);
 
+router.get('/question-sets', adminController.getAllQuestionSets);
+
+router.put('/question-sets/:setId/public-status', adminController.updateQuestionSetPublicStatus);
+
+
+
 module.exports = router;
