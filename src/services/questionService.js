@@ -7,6 +7,7 @@ const QuestionSet = require('../models/QuestionSet');
 const Question = require('../models/Question');
 const { Jieba, dict } = require('@node-rs/jieba');
 const AppError = require('../utils/AppError');
+const axios = require('axios');
 
 const jieba = new Jieba(dict);
 const STOP_WORDS = new Set(['的', '是', '了', '在', '也', '和', '就', '都', '或', '等', '一个', '什么', '请', '关于', 'the', 'a', 'is', 'what', 'and', 'or']);
@@ -475,6 +476,80 @@ class QuestionService {
     }
 
     /**
+     * (内部辅助方法) 获取微信 access_token
+     * 在生产环境中, 强烈建议将获取到的 token 进行全局缓存并设置定时刷新, 避免频繁请求导致触发API调用频率限制。
+     * @returns {Promise<string>}
+     */
+    async _getWxAccessToken() {
+        const { WX_APPID, WX_SECRET } = process.env;
+        if (!WX_APPID || !WX_SECRET) {
+            // 这种属于服务器配置错误，对用户不可见
+            throw new AppError('服务器配置错误：微信小程序 AppID 或 Secret 未配置。', 500);
+        }
+        const url = `https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid=${WX_APPID}&secret=${WX_SECRET}`;
+
+        try {
+            const response = await axios.get(url);
+            const { access_token, errcode, errmsg } = response.data;
+
+            if (!access_token || errcode) {
+                throw new Error(`获取 access_token 失败 (code: ${errcode}): ${errmsg}`);
+            }
+            return access_token;
+        } catch (error) {
+            throw new AppError(`调用微信 token 接口失败: ${error.message}`, 500);
+        }
+    }
+
+    /**
+     * (内部辅助方法) 将长文本按指定长度分割成数组
+     * @param {string} text - 需要分割的文本
+     * @param {number} maxLength - 每个分段的最大长度
+     * @returns {string[]}
+     */
+    _splitTextIntoChunks(text, maxLength) {
+        const chunks = [];
+        for (let i = 0; i < text.length; i += maxLength) {
+            chunks.push(text.substring(i, i + maxLength));
+        }
+        return chunks;
+    }
+
+    /**
+     * (内部辅助方法) 调用微信内容安全API审查单个文本块
+     * @param {string} content - 要审查的文本
+     * @param {string} accessToken - 有效的 access_token
+     */
+    async _checkTextWithWxApi(content, accessToken) {
+        const checkUrl = `https://api.weixin.qq.com/wxa/msg_sec_check?access_token=${accessToken}`;
+        try {
+            const checkResponse = await axios.post(checkUrl,
+                { content },
+                {
+                    headers: { 'Content-Type': 'application/json' },
+                    // 微信API要求UTF-8, axios默认就是
+                }
+            );
+
+            const { result, errcode } = checkResponse.data;
+
+            if (errcode === 87014 || (result && result.suggest !== 'pass')) {
+                return { isSafe: false, data: checkResponse.data };
+            }
+            if (errcode !== 0) {
+                throw new Error(`微信内容安全接口返回错误 (code: ${errcode})`);
+            }
+            // errcode 为 0 且 suggest 为 pass 代表内容正常
+            return { isSafe: true, data: checkResponse.data };
+
+        } catch (error) {
+            // 重新抛出一个可控的错误
+            throw new AppError(`调用微信内容安全服务时发生网络或API错误: ${error.message}`, 500);
+        }
+    }
+
+
+    /**
      * 更新指定ID的题库信息
      * @param {number} setId - 题库ID
      * @param {number} userId - 当前操作的用户ID
@@ -482,15 +557,60 @@ class QuestionService {
      * @returns {Promise<object|null>} 更新后的题库对象
      */
     async updateQuestionSet(setId, userId, updateData) {
-        const questionSet = await QuestionSet.findByPk(setId);
+        // 为了进行内容审查，我们需要加载题库及其包含的所有题目
+        const questionSet = await QuestionSet.findByPk(setId, {
+            include: [{
+                model: Question,
+                as: 'questions',
+            }]
+        });
 
         if (!questionSet) {
-            // 使用我们自定义的AppError来传递特定的HTTP状态码
             throw new AppError('题库不存在', 404);
         }
 
         if (questionSet.creator_id !== userId) {
-            throw new AppError('无权修改该题库', 403); // 403 Forbidden
+            throw new AppError('无权修改该题库', 403);
+        }
+
+        // --- 当用户尝试将题库设置为公开时, 触发微信内容安全审查 ---
+        if (updateData.isPublic === true && questionSet.isPublic === false) {
+            // 1. 收集所有需要审查的文本内容
+            let fullTextContent = [
+                questionSet.title,
+                questionSet.domain_major,
+                questionSet.domain_minor,
+                questionSet.domain_detail,
+                questionSet.provider,
+                questionSet.model
+            ].filter(Boolean).join('\n'); // 使用换行符分隔，更清晰
+
+            questionSet.questions.forEach(q => {
+                fullTextContent += `\n${q.content.question || ''}`;
+                if (q.content.options && Array.isArray(q.content.options)) {
+                    fullTextContent += `\n${q.content.options.join('\n')}`;
+                }
+                if (q.answer.explanation) {
+                    fullTextContent += `\n${q.answer.explanation}`;
+                }
+            });
+
+            if (fullTextContent.trim()) {
+                // 2. 将长文本分割成符合微信API要求的块 (每块最多2500字符)
+                const textChunks = this._splitTextIntoChunks(fullTextContent, 2500);
+
+                // 3. 获取 access_token
+                const accessToken = await this._getWxAccessToken();
+
+                // 4. 依次审查每一个文本块
+                for (const chunk of textChunks) {
+                    const result = await this._checkTextWithWxApi(chunk, accessToken);
+                    if (!result.isSafe) {
+                        // 如果任何一个块审查不通过，则立即终止并返回错误
+                        throw new AppError('题库无法公开，因为内容未通过微信内容安全审查。请检查标题、描述或题目内容后重试。', 400); // 400 Bad Request
+                    }
+                }
+            }
         }
 
         // 只允许更新指定的字段
@@ -503,13 +623,15 @@ class QuestionService {
         }
 
         if (Object.keys(allowedUpdates).length === 0) {
-            // 如果没有提供任何可更新的字段，则无需操作
             return questionSet;
         }
 
+        // 使用原始的 questionSet 实例进行更新
         await questionSet.update(allowedUpdates);
 
-        return questionSet;
+        // 为了避免返回过多的题目数据，可以重新查询一次仅包含题库信息的数据返回
+        const updatedQuestionSetInfo = await QuestionSet.findByPk(setId);
+        return updatedQuestionSetInfo;
     }
 }
 
