@@ -233,6 +233,160 @@ class QuestionService {
         }
     }
 
+
+    /**
+     * 验证单个问题对象的结构是否符合 'multiple_choice' 规范
+     * @param {object} q - 问题对象
+     * @returns {{isValid: boolean, error: string|null}}
+     */
+    _validateQuestionObject(q) {
+        if (!q || typeof q !== 'object') {
+            return { isValid: false, error: '题目必须是一个对象。' };
+        }
+        if (q.type !== 'multiple_choice') {
+            return { isValid: false, error: `当前仅支持 "multiple_choice" 类型的导入，但题目类型为 "${q.type}"。` };
+        }
+        if (!q.content || typeof q.content.question !== 'string' || !Array.isArray(q.content.options) || q.content.options.length < 2) {
+            return { isValid: false, error: 'content 字段格式错误，必须包含 question 字符串和至少2个选项的 options 数组。' };
+        }
+        if (!q.answer || typeof q.answer.correctOption !== 'string' || typeof q.answer.explanation !== 'string') {
+            return { isValid: false, error: 'answer 字段格式错误，必须包含 correctOption 和 explanation 字符串。' };
+        }
+        return { isValid: true, error: null };
+    }
+
+
+    /**
+     * 将自定义文本格式解析为标准题目对象数组
+     * @param {string} textData - 包含所有题目的长字符串
+     * @returns {Array<object>} - 标准格式的题目对象数组
+     */
+    _parseTextToQuestions(textData) {
+        if (typeof textData !== 'string' || textData.trim() === '') {
+            throw new AppError('导入的文本内容不能为空。', 400);
+        }
+
+        // 1. 按题号分割成独立的题目块
+        const questionBlocks = textData.trim().split(/\[\d+\]\./).filter(Boolean);
+        const parsedQuestions = [];
+
+        for (let i = 0; i < questionBlocks.length; i++) {
+            const block = questionBlocks[i].trim();
+            const lines = block.split('\n').filter(line => line.trim() !== '');
+
+            if (lines.length < 4) { // 至少需要题干、2个选项、1个答案
+                const err = new AppError('文本格式错误', 400);
+                err.details = `第 ${i + 1} 题内容不完整，无法解析。`;
+                throw err;
+            }
+
+            const questionText = lines[0].trim();
+            const options = [];
+            const optionRegex = /\[([A-Z])\]\.(.*)/;
+            let answer = null;
+            let analysis = '';
+
+            lines.slice(1).forEach(line => {
+                const optionMatch = line.match(optionRegex);
+                if (optionMatch) {
+                    options.push(optionMatch[2].trim());
+                } else if (line.startsWith('[answer]:')) {
+                    answer = line.substring('[answer]:'.length).trim();
+                } else if (line.startsWith('[analysis]:')) {
+                    analysis = line.substring('[analysis]:'.length).trim();
+                }
+            });
+
+            // 2. 验证解析结果
+            if (options.length < 2 || !answer) {
+                const err = new AppError('文本格式错误', 400);
+                err.details = `第 ${i + 1} 题缺少选项或答案，请检查格式是否为 '[A].'、'[answer]:'。`;
+                throw err;
+            }
+
+            // 3. 组装成标准对象
+            parsedQuestions.push({
+                type: 'multiple_choice',
+                content: {
+                    question: questionText,
+                    options: options
+                },
+                answer: {
+                    correctOption: answer,
+                    explanation: analysis
+                }
+            });
+        }
+        return parsedQuestions;
+    }
+
+
+    /**
+     * 从用户导入的数据创建题库
+     */
+    async createQuestionSetFromImport(userId, questionSetData, importType, questionsRawData) {
+        let parsedQuestions = [];
+
+        try {
+            if (importType === 'json') {
+                if (!Array.isArray(questionsRawData)) {
+                    throw new AppError('JSON 格式导入失败： "questions" 字段必须是一个数组。', 400);
+                }
+                parsedQuestions = questionsRawData;
+            } else if (importType === 'text') {
+                parsedQuestions = this._parseTextToQuestions(questionsRawData);
+            }
+        } catch (error) {
+            // 重新抛出解析阶段的错误，让Controller层能捕获到详细信息
+            throw error;
+        }
+
+
+        if (parsedQuestions.length === 0) {
+            throw new AppError('数据校验失败：未能解析出任何有效的题目。', 400);
+        }
+
+        // 统一对解析后的数组进行结构验证
+        for (let i = 0; i < parsedQuestions.length; i++) {
+            const validation = this._validateQuestionObject(parsedQuestions[i]);
+            if (!validation.isValid) {
+                const err = new AppError('数据校验失败', 400);
+                err.details = `第 ${i + 1} 道题的格式不符合标准：${validation.error}`;
+                throw err;
+            }
+        }
+
+        const t = await sequelize.transaction();
+        try {
+            // 1. 创建 QuestionSet
+            const newSet = await QuestionSet.create({
+                ...questionSetData,
+                creator_id: userId,
+                status: 'completed',
+                quantity: parsedQuestions.length
+            }, { transaction: t });
+
+            // 2. 准备 Question 数据
+            const questionsToCreate = parsedQuestions.map(q => ({
+                ...q,
+                question_set_id: newSet.id
+            }));
+
+            // 3. 批量创建 Question
+            await Question.bulkCreate(questionsToCreate, { transaction: t });
+
+            await t.commit();
+            return newSet;
+
+        } catch (error) {
+            await t.rollback();
+            // 抛出一个通用错误，具体的解析/验证错误在之前已经处理
+            throw new AppError('数据库操作失败，无法保存导入的题库。', 500);
+        }
+    }
+
+
+
     async requestQuestionSetGeneration(userId, generationParams) {
         const newSet = await QuestionSet.create({
             ...generationParams,

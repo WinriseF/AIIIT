@@ -26,6 +26,49 @@ exports.generateQuestionSet = async (req, res) => {
     }
 };
 
+
+/**
+ * 3.1.1 手动导入一套题目
+ */
+exports.importQuestionSet = async (req, res) => {
+    const userId = req.user.id;
+    const { questionSetData, importType, questions } = req.body;
+
+    // 1. 基本校验
+    if (!questionSetData || !importType || !questions) {
+        return res.status(400).json({ code: 400, message: '请求体必须包含 "questionSetData", "importType", 和 "questions" 字段。' });
+    }
+    const requiredFields = ['title', 'provider', 'model'];
+    for (const field of requiredFields) {
+        if (typeof questionSetData[field] !== 'string' || questionSetData[field].trim() === '') {
+            return res.status(400).json({ code: 400, message: `"questionSetData" 中必须包含有效的 "${field}" 字段。` });
+        }
+    }
+    if (!['json', 'text'].includes(importType)) {
+        return res.status(400).json({ code: 400, message: '"importType" 必须是 "json" 或 "text"。' });
+    }
+
+    try {
+        const newSet = await questionService.createQuestionSetFromImport(userId, questionSetData, importType, questions);
+        res.status(201).json({
+            code: 0,
+            message: '题库导入成功！',
+            data: {
+                setId: newSet.id
+            }
+        });
+    } catch (error) {
+        // Service层会抛出带有状态码的AppError
+        const statusCode = error.statusCode || 500;
+        res.status(statusCode).json({
+            code: statusCode,
+            message: error.message || 'Internal Server Error',
+            // 如果错误对象包含更详细的行号信息，也一并返回
+            details: error.details || null
+        });
+    }
+};
+
 // 3.2 获取指定题库详情
 exports.getQuestionSet = async (req, res) => {
     const { setId } = req.params;

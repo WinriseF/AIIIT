@@ -17,6 +17,8 @@ router.get('/my', questionController.getMyQuestionSets);
 // POST /v1/question-sets/generate
 router.post('/generate', questionController.generateQuestionSet);
 
+router.post('/import', questionController.importQuestionSet);
+
 // PUT /v1/question-sets/:setId
 router.put('/:setId', questionController.updateQuestionSet);
 

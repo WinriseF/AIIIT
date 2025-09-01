@@ -8,8 +8,7 @@
 # 使用 IDEA HTTP Client 的动态变量生成一个随机的用户名
 @username = testuser{{$randomInt}}@example.com
 @password = strongpassword123
-@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwidXNlcm5hbWUiOiJ0ZXN0dXNlcjQyQGV4YW1wbGUuY29tIiwicm9sZSI6InVzZXIiLCJpYXQiOjE3NTY1MjMxNDAsImV4cCI6MTc1Njc4MjM0MH0.-tQKFcAfJdamZYDnJu-BF_hmIWsrFy2aLUWcVfX9ssA
-
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6MSwidXNlcm5hbWUiOiJ0ZXN0dXNlcjQyQGV4YW1wbGUuY29tIiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzU2NjkwOTc0LCJleHAiOjE3NTY5NTAxNzR9.S2JQS834y9kGXQZ5F7mnexVqCIogPqlgfx0KssYGyto
 ### 1. 账户密码注册 (Register)
 # @name registerRequest
 POST {{api_v1}}/auth/register
@@ -403,3 +402,110 @@ Authorization: Bearer {{token}}
 # 在 URL 中用 search 参数指定搜索关键词
 #
 GET {{api_v1}}/question-sets/public?search=高级
+
+
+###
+# ===============================================================
+# 28. 测试标准 JSON 格式导入
+# ===============================================================
+POST http://localhost:3000/v1/question-sets/import
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "questionSetData": {
+    "title": "【JSON导入】前端基础面试题",
+    "provider": "DeepSeek",
+    "model": "DeepSeek-r1",
+    "isPublic": false,
+    "domain_major": "互联网",
+    "domain_minor": "前端开发",
+    "domain_detail": "JavaScript 基础",
+    "difficulty": "简单",
+    "questionType": "multiple_choice"
+  },
+  "importType": "json",
+  "questions": [
+    {
+      "type": "multiple_choice",
+      "content": {
+        "question": "在 JavaScript 中，哪个关键字用于声明一个常量？",
+        "options": [
+          "var",
+          "let",
+          "const",
+          "static"
+        ]
+      },
+      "answer": {
+        "correctOption": "C",
+        "explanation": "'const' 用于声明一个块作用域的常量，一旦赋值后不可更改。"
+      }
+    },
+    {
+      "type": "multiple_choice",
+      "content": {
+        "question": " `typeof null` 的返回值是什么？",
+        "options": [
+          "null",
+          "undefined",
+          "object",
+          "string"
+        ]
+      },
+      "answer": {
+        "correctOption": "C",
+        "explanation": "这是一个 JavaScript 历史遗留的 bug。在 JavaScript 最初的实现中，JavaScript 中的值是由一个表示类型的标签和实际数据值表示的。对象的类型标签是 0。由于 null 代表的是空指针（大多数平台下值为 0x00），因此 null 的类型标签是 0，typeof null 也因此返回 'object'。"
+      }
+    }
+  ]
+}
+
+
+###
+# ===============================================================
+# 29. 测试自定义文本格式导入
+# ===============================================================
+POST http://localhost:3000/v1/question-sets/import
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "questionSetData": {
+    "title": "数据库SQL挑战",
+    "provider": "ChatGPT",
+    "model": "GPT-4o",
+    "isPublic": true,
+    "domain_major": "互联网",
+    "domain_minor": "后端开发",
+    "domain_detail": "SQL",
+    "difficulty": "中等",
+    "questionType": "multiple_choice"
+  },
+  "importType": "text",
+  "questions": "[1].哪种SQL语句用于从数据库中删除数据？\n[A].DELETE\n[B].REMOVE\n[C].COLLAPSE\n[D].ERASE\n[answer]:A\n[analysis]:DELETE 语句用于删除表中的行。\n\n[2].要对结果集进行排序，应该使用哪个SQL关键字？\n[A].SORT BY\n[B].ORDER BY\n[C].GROUP BY\n[D].ALIGN BY\n[answer]:B\n[analysis]:ORDER BY 关键字用于对结果集中的记录进行升序或降序排序。"
+}
+
+###
+# ===============================================================
+# 30. 测试格式错误的请求
+# ===============================================================
+POST http://localhost:3000/v1/question-sets/import
+Content-Type: application/json
+Authorization:Bearer {{token}}
+
+{
+  "questionSetData": {
+    "title": "【错误格式】这是一个测试",
+    "provider": "ChatGPT",
+    "model": "GPT-4o",
+    "isPublic": false,
+    "domain_major": "其他",
+    "domain_minor": "测试",
+    "domain_detail": "错误处理",
+    "difficulty": "简单",
+    "questionType": "multiple_choice"
+  },
+  "importType": "text",
+  "questions": "[1].这是一个格式正确的题目\n[A].选项A\n[B].选项B\n[answer]:A\n[analysis]:解析A\n\n[2].这道题缺少答案\n[A].选项A\n[B].选项B\n[analysis]:这会导致后端报错"
+}
