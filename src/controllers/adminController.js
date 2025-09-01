@@ -1,5 +1,6 @@
 // src/controllers/adminController.js
 const correctionService = require('../services/correctionService');
+const adminService = require('../services/adminService');
 const MAX_PAGE_LIMIT = 50;
 
 exports.getCorrections = async (req, res) => {
@@ -44,6 +45,30 @@ exports.processCorrection = async (req, res) => {
         });
     } catch (error) {
         console.error('Process Correction Admin Controller Error:', error);
+        const statusCode = error.statusCode || 500;
+        res.status(statusCode).json({ code: statusCode, message: error.message || 'Internal Server Error' });
+    }
+};
+
+/**
+ * (新增) 更新用户发布权限
+ */
+exports.updateUserPublicationStatus = async (req, res) => {
+    const { userId } = req.params;
+    const { canPublish } = req.body;
+
+    if (typeof canPublish !== 'boolean') {
+        return res.status(400).json({ code: 400, message: '请求体中必须包含 "canPublish" 字段，且其值必须是布尔类型。' });
+    }
+
+    try {
+        await adminService.updateUserPublicationStatus(parseInt(userId, 10), canPublish);
+        res.status(200).json({
+            code: 0,
+            message: `用户(ID: ${userId})的发布权限已成功更新为: ${canPublish}`,
+            data: null
+        });
+    } catch (error) {
         const statusCode = error.statusCode || 500;
         res.status(statusCode).json({ code: statusCode, message: error.message || 'Internal Server Error' });
     }

@@ -35,6 +35,12 @@ const User = sequelize.define('User', {
     role: {
         type: DataTypes.ENUM('user', 'admin'),
         defaultValue: 'user'
+    },
+    canPublish: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: true,
+        allowNull: false,
+        comment: '用户是否可以发布公开题库'
     }
 }, {
     timestamps: true,

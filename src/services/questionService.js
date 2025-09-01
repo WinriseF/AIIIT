@@ -562,6 +562,10 @@ class QuestionService {
             include: [{
                 model: Question,
                 as: 'questions',
+            },{
+                model: User,
+                as: 'creator',
+                attributes: ['id', 'canPublish']
             }]
         });
 
@@ -576,6 +580,9 @@ class QuestionService {
         // --- 当用户尝试将题库设置为公开时, 触发微信内容安全审查 ---
         if (updateData.isPublic === true && questionSet.isPublic === false) {
             // 1. 收集所有需要审查的文本内容
+            if (!questionSet.creator || questionSet.creator.canPublish === false) {
+                throw new AppError('您目前没有发布公开题库的权限，请联系管理员。', 403); // 403 Forbidden
+            }
             let fullTextContent = [
                 questionSet.title,
                 questionSet.domain_major,

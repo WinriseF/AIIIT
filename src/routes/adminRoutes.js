@@ -23,4 +23,6 @@ router.get('/corrections', adminController.getCorrections);
 
 router.put('/corrections/:correctionId', adminController.processCorrection);
 
+router.put('/users/:userId/publication-status', adminController.updateUserPublicationStatus);
+
 module.exports = router;
