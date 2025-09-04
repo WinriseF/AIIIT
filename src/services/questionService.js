@@ -2,7 +2,7 @@
 const OpenAI = require('openai');
 const { Op } = require('sequelize');
 const sequelize = require('../config/database');
-const apiKeyService = require('./apiKeyService');
+const apiKeyService = require('./apikeyService');
 const QuestionSet = require('../models/QuestionSet');
 const Question = require('../models/Question');
 const { Jieba, dict } = require('@node-rs/jieba');
