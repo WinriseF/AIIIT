@@ -1,5 +1,5 @@
 // src/controllers/apiKeyController.js
-const apiKeyService = require('../services/apiKeyService');
+const apiKeyService = require('../services/apikeyService');
 
 // 2.1 保存/更新用户的 API Key
 exports.saveOrUpdateApiKey = async (req, res) => {
