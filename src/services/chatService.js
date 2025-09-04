@@ -1,6 +1,6 @@
 // src/services/chatService.js
 const OpenAI = require('openai');
-const apiKeyService = require('./apiKeyService');
+const apiKeyService = require('./apikeyService');
 const AppError = require('../utils/AppError');
 
 class ChatService {
