@@ -53,7 +53,7 @@ app.use('/v1/auth', authRoutes);
 const userRoutes = require('./routes/userRoutes');
 app.use('/v1/users', userRoutes);
 
-const apiKeyRoutes = require('./routes/apiKeyRoutes');
+const apiKeyRoutes = require('./routes/apikeyRoutes');
 app.use('/v1/keys', apiKeyRoutes);
 
 const questionRoutes = require('./routes/questionRoutes');
